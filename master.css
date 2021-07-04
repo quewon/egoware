@@ -52,11 +52,6 @@ ul, ol {
   }
 }
 
-:root {
-  --bg:  #b06d07;
-  --text:  #fcc879;
-}
-
 body {
   background-color:  var(--bg);
   font-family:  'Ubuntu Mono', monospace;
@@ -100,7 +95,7 @@ body {
   position:  absolute;
   width:  100%;
   height:  calc(100% - 3em);
-  background: linear-gradient(180deg, rgba(176, 109, 7, 0) 50%, rgba(176, 109, 7, 1) 100%);
+  background: linear-gradient(180deg, var(--bg-rgba-1) 50%, var(--bg-rgba-2) 100%);
   top:  3em;
   pointer-events:  none;
 }
