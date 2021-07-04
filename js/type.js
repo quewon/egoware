@@ -1,6 +1,5 @@
 window.onload = function() {
   init();
-  switchApp("egoware");
 };
 
 var _input = document.getElementById("input");
@@ -30,6 +29,8 @@ function init() {
     caretIdle = true;
   };
   update();
+
+  switchApp(Config.startupApp);
 }
 
 function input(command) {

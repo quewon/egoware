@@ -2,6 +2,7 @@ var Config = {
   validInput: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-_+=<,>.:;\"'?/{[}]|~` ",
   maxOutput: 15,
   typeSpeed: 2,
+  startupApp: "egoware",
 };
 
 function isOverflown(element) {

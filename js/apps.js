@@ -1,4 +1,4 @@
-var appHistory = ["mailbox"];
+var appHistory = ["mailbox", "3p3o"];
 
 var Apps = {
   "egoware": {
@@ -50,7 +50,7 @@ var Apps = {
             respondingTo = command;
             mode = "RESPONSE";
           } else {
-            output("i understand. "+mode+" is <em>"+command+"</em> like "+D[command][D[command].length * Math.random() | 0]+".", true);
+            output("i understand. "+mode+" is <em>"+command+"</em> like "+D[command][0]+".", true);
             mode = "CMD";
           }
           break;
@@ -285,7 +285,9 @@ var Apps = {
           }
           break;
         case "save":
-          if (Apps["3p3o"].saved.includes(Apps["3p3o"].track)) {
+          if (!Apps["3p3o"].track) {
+            output("can't save a track when it's not playing.");
+          } else if (Apps["3p3o"].saved.includes(Apps["3p3o"].track)) {
             output("track already saved!")
           } else {
             Apps["3p3o"].saved.push(Apps["3p3o"].track);
@@ -298,12 +300,25 @@ var Apps = {
       }
     },
     startup: function() {
+      let types = Object.keys(D);
+      let type = null;
+
+      if (types.length > 0) {
+        type = types[Math.random() * types.length | 0];
+      }
+
+      Apps["3p3o"].track = type;
+
       // play music
-      output("now playing: "+Apps["3p3o"].track);
+      if (type) {
+        output("now playing: "+Apps["3p3o"].track);
+      } else {
+        output("no tracks playing.");
+      }
     },
-    track: "love song",
+    track: null,
     saved: [],
-    intro: "slave to the radio. you're listening to 3p3o.<br>type <em>3p3o</em> to exit the application.",
+    intro: "you're listening to 3p3o.<br>type <em>3p3o</em> to exit the application.",
     commands: ["help", "3p3o", "play", "save"],
   },
 };
