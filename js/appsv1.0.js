@@ -169,7 +169,7 @@ var Apps = {
               `);
           } else {
             Apps.mailbox.bin.push(inbox[suf-1]);
-            inbox.splice(inbox.indexOf(suf-1), 1);
+            inbox.splice(suf-1, 1);
             output("letter deleted.");
           }
           break;
