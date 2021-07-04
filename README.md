@@ -1,0 +1,2 @@
+# egoware
+lonely software
