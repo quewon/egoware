@@ -9,6 +9,8 @@ function isOverflown(element) {
   return element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth;
 }
 
+var appHistory = ["mailbox", "3p3o"];
+
 var typing;
 function type(element, content, s) {
   typing = true;

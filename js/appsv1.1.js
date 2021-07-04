@@ -56,7 +56,7 @@ var Apps = {
           break;
       }
     },
-    intro: "<u>egoware v1.0</u><br>teach me things like greetings and basic phrases!<br>type <em>egoware</em> to exit the application.",
+    intro: "<u>egoware v1.1</u><br>teach me things like greetings and basic phrases!<br>type <em>egoware</em> to exit the application.",
     commands: ["egoware"],
   },
 
