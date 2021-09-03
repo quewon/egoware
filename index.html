@@ -2,30 +2,474 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>v1.0</title>
+  <title>egoware</title>
   <style type="text/css">
-    :root {
-      --bg:  #3b3d3d;
-      --text:  white;
-      --bg-rgba-1:  rgba(59, 61, 61, 0);
-      --bg-rgba-2:  rgba(59, 61, 61, 1);
+    body {
+      font-family: monospace;
+      background: #d4d8d9;
+      color: #4e5152;
+      margin: 0;
+
+      -webkit-touch-callout: none; /* iOS Safari */
+      -webkit-user-select: none; /* Safari */
+       -khtml-user-select: none; /* Konqueror HTML */
+         -moz-user-select: none; /* Old versions of Firefox */
+          -ms-user-select: none; /* Internet Explorer/Edge */
+              user-select: none; /* Non-prefixed version, currently
+                                    supported by Chrome, Edge, Opera and Firefox */
+      cursor: default;
+    }
+
+    .none {
+      display: none;
+    }
+
+    .inverted {
+      background: #4e5152;
+      color: #d4d8d9;
+      height: fit-content;
+      width: fit-content;
+    }
+
+    hr {
+      border-color: #d4d8d9;
+    }
+
+    span {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      text-align: center;
+    }
+
+    button {
+      background: transparent;
+      border: none;
+      font-family: inherit;
+      font-size: inherit;
+      padding: 0;
+      color: inherit;
+      width: fit-content;
+      height: fit-content;
+      margin: 0;
+    }
+    button:hover {
+      background: #4e5152;
+      color: #d4d8d9;
+      cursor: pointer;
+    }
+    button.inverted {
+      display: inline-block;
+      width: fit-content;
+    }
+
+    input {
+      width: 7em;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #4e5152;
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+      text-align: center;
+    }
+    input:focus {
+      outline: none;
+    }
+
+    #intro {
+      position: absolute;
+      top: 10vh;
+      left: 15vw;
+    }
+
+    #container {
+      top: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+    .list {
+      white-space: pre;
+      width: calc(65% - 3em);
+      overflow: scroll;
+      position: fixed;
+      right: 0;
+      height: 100%;
+    }
+    #list {
+      position: absolute;
+      top: 10vh;
+      overflow: hidden;
+      padding-bottom: 10vh;
+    }
+
+    #profile {
+      text-align: left;
+      white-space: pre;
+      padding: 1em;
+      border: 1px solid #4e5152;
+    }
+    #profile .inverted {
+      width: 100%;
+    }
+
+    .dead {
+      color: rgba(78, 81, 82, 0.2);
+      width: fit-content;
+      height: fit-content;
+      background: transparent;
+    }
+    .dead:hover {
+      cursor: default;
+      background: transparent;
+      color: rgba(78, 81, 82, 0.2);
+    }
+
+    #feed {
+      cursor: pointer
+    }
+    #feed .hide {
+      animation: hide 1s;
+    }
+    @keyframes hide {
+      0% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
     }
   </style>
-  <link rel="stylesheet" type="text/css" href="master.css">
 </head>
+
 <body>
-  <div id="container">
-    <div id="input_wrapper">
-      <span id="input"></span><span id="caret" class="idle">_</span>
-    </div>
-    <div id="output"></div>
-    <div id="output_filter"></div>
+
+  <div id="intro" onkeypress="key(event)">
+    your name is <input type="text"></input><br>and you have just created a cloning machine.
   </div>
+
+  <div class="none" id="container">
+    <div style="position:fixed;width:20vw;top:10vh;margin-left:15vw">
+      <button id="name" onclick="profile(0)"></button>
+      <hr>
+      <div id="controls">
+        <button onclick="guys[0].clone()">clone</button> . <button onclick="guys[0].mutate()">mutate</button>
+      </div>
+      <br><br>
+      <div id="profile" data-id=0></div>
+      <br><br>
+      <div id="feed"></div>
+    </div>
+    <div class="list">
+      <div id="list"></div>
+    </div>
+  </div>
+
 </body>
-<script src="js/cookie.umd.min.js"></script>
-<script src="js/howler.core.js"></script>
-<script src="js/d.js"></script>
-<script src="js/config.js"></script>
-<script src="js/appsmain.js"></script>
-<script src="js/type.js"></script>
+
+<script type="text/javascript">
+  var intro = document.getElementById("intro");
+  var container = document.getElementById("container");
+
+  var nametag = document.getElementById("name");
+  var list = document.getElementById("list");
+  var feed = document.getElementById("feed");
+  var string = "abcdefghijklmnopqrstuvwxyz0123456789;',.";
+  var genelength = 16;
+
+  window.onload = function() {
+    intro.querySelector("input").focus();
+  };
+
+  function key(e) {
+    if (e.key == "Enter") {
+      nametag.textContent = intro.querySelector("input").value;
+      new guy({
+        name: nametag.textContent
+      });
+      intro.classList.add("none");
+      container.classList.remove("none");
+      profile(0);
+      setInterval(tick, 100);
+    }
+  }
+
+  var guys = [];
+  class guy {
+    constructor(og) {
+      this.id = guys.length;
+      this.name = og.name;
+      this.gene = og.gene || this.getGene(this.name);
+      this.children = [];
+      this.parent = og.id || null;
+      this.dead = false;
+      this.timer = og.timer || 1;
+
+      if (og.actions) {
+        this.actions = {
+          clone: og.actions.clone,
+          mutate: og.actions.mutate,
+          kill: og.actions.kill,
+        };
+      } else {
+        this.actions = {
+          clone: 9,
+          mutate: 10,
+          kill: 0,
+        };
+      };
+
+      if (og.stats) {
+        this.stats = {
+          cloned: og.stats.cloned,
+          mutated: og.stats.mutated,
+          killed: og.stats.killed
+        }
+      } else {
+        this.stats = {
+          cloned: 0,
+          mutated: 0,
+          killed: 0,
+        }
+      }
+
+      guys.push(this);
+
+      update();
+    }
+
+    getGene(seed) {
+      seed = seed.toLowerCase();
+      let s = "";
+      for (let i=0; i<seed.length; i++) {
+        let code = seed.charCodeAt(i) - 97;
+        code = code < 0 ? 0 : code;
+        let char = String(code);
+        char = char.length == 1 ? "0"+char : char;
+        s += char;
+      }
+      return s
+    }
+
+    getName(gene) {
+      let arr = gene.match(/.{1,2}/g);
+
+      let s = "";
+      for (let num of arr) {
+        let n = parseInt(num);
+        while (n >= 26) { n -= 26 }
+        s += string.charAt(n);
+      }
+
+      return s
+    }
+
+    clone() {
+      if (this.dead) return;
+
+      this.actions.clone++;
+      this.stats.cloned++;
+      this.children.push(new guy(this));
+
+      this.feed("just became <span class='inverted'>two</span>.");
+      update();
+
+      if (guys.length == 100) {
+        alert("warning: you've just reached 100 clones. you might wanna refresh your browser now, unless you want to give your computer a real hard time.")
+      }
+    }
+
+    mutate() {
+      if (this.dead) return;
+
+      let index = Math.random() * this.gene.length | 0;
+      let num = parseInt(this.gene.charAt(index));
+      num++;
+      if (num > 9) num = 0;
+      this.gene = this.gene.substr(0, index) + num + this.gene.substr(index + 1);
+      this.name = this.getName(this.gene);
+
+      this.actions.mutate++;
+      this.stats.mutated++;
+
+      this.feed("has mutated into <span class='inverted'>a new being</span>.");
+      update();
+    }
+
+    die(killer) {
+      this.dead = true;
+
+      if (this.id == 0) {
+        let buttons = document.getElementById("controls").querySelectorAll("button");
+        for (let button of buttons) {
+          button.classList.add("dead");
+        }
+      }
+
+      if (killer) {
+        if (killer.id == this.id) {
+          this.feed("has gone.");
+        } else {
+          this.feed("has been killed by <span class='inverted'>"+killer.name+"</span>.");
+        }
+      } else {
+        this.feed("has passed away to <span class='inverted'>mysterious circumstances</span>.");
+      }
+      update();
+    }
+
+    closestLivingRelative() {
+      // go through children, and my children's children
+
+      // then my siblings, and my sibling's children
+
+      // then my parent
+
+      // then my parent's parent
+
+      return null
+    }
+
+    kill(id) {
+      if (isNaN(id))
+        id = this.closestLivingRelative();
+
+      if (!isNaN(id)) {
+        for (let guy of guys) {
+          guy.actions.kill++;
+        }
+        this.stats.killed++;
+        guys[id].die(this);
+        profile(_profile.dataset.id);
+      }
+    }
+
+    tick() {
+      if (this.dead) return;
+
+      const random = Math.random()*500 | 0;
+      if (this.timer % random == 0) {
+        const choice = weightedRandom(this.actions);
+        this[choice]();
+      }
+
+      this.timer++;
+    }
+
+    print(indent, last) {
+      let s = "";
+      indent = indent || "";
+      last = last || false;
+
+      s += indent;
+      if (last) {
+        s += "└─ ";
+        indent += "   "
+      } else {
+        s += "├─ ";
+        indent += "│  "
+      }
+
+      let selected = _profile.dataset.id == this.id ? " inverted" : "";
+
+      s += this.dead ? "<span class='dead"+selected+"'>"+this.name+"</span><br>" : `<button class="`+selected+`" onclick="profile('`+this.id+`')">`+this.name+"</button><br>";
+
+      for (let i=0; i<this.children.length; i++) {
+        s += this.children[i].print(indent, i == this.children.length - 1);
+      }
+
+      return s
+    }
+
+    feed(message) {
+      if (feed.children.length > 4) {
+        let i=feed.children.length-1;
+        let elementNotHidden = feed.lastElementChild;
+        while (elementNotHidden.classList.contains("hide")) {
+          i--;
+          if (i >= 0) {
+            elementNotHidden = feed.children[i];
+          } else {
+            break;
+          }
+        }
+        if (elementNotHidden) {
+          elementNotHidden.classList.add("hide");
+          elementNotHidden.onanimationend = function() { this.remove() };
+        }
+      }
+
+      let el = document.createElement("div");
+      el.innerHTML = this.name+" "+message;
+      el.onclick = function() { this.remove() };
+
+      if (feed.firstElementChild) {
+        feed.insertBefore(el, feed.firstElementChild);
+      } else {
+        feed.appendChild(el);
+      }
+    }
+  }
+
+  function tick() {
+    for (let i=guys.length-1; i>0; i--) {
+      guys[i].tick();
+    }
+    guys[0].timer++;
+  }
+
+  function update() {
+    if (guys[0].dead) {
+      nametag.onclick = null;
+      nametag.classList.add("dead");
+    }
+    nametag.innerHTML = guys[0].name;
+
+    list.innerHTML = guys[0].print("", true);
+  }
+
+  var _profile = document.getElementById("profile");
+  function profile(id) {
+    let guy = guys[id];
+    let s = "";
+
+    s += "<span class='inverted'>"+guy.name+"</span><br><br>";
+    s += "    age: "+guy.timer+"<br>";
+    s += "   gene: "+guy.gene+"<br>";
+    s += " cloned: "+guy.stats.cloned+"<br>";
+    s += "mutated: "+guy.stats.mutated+"<br>";
+    s += " killed: "+guy.stats.killed+"<br>";
+    s += "<br>";
+
+    s += guys[0].dead || guy.dead ? `<span class="dead">kill</span>` : `<button onclick="guys[0].kill(`+guy.id+`)">kill</button>`;
+
+    _profile.dataset.id = id;
+    _profile.innerHTML = s;
+
+    update();
+  }
+
+  function weightedRandom(P) {
+    var key;
+
+    let max = 0;
+    for (let k in P) {
+      max += P[k];
+    }
+
+    let random = Math.round(Math.random() * max);
+
+    let i = 0;
+    for (let k in P) {
+      key = k;
+      i += P[k];
+      if (random <= i) {
+        break;
+      }
+    }
+
+    return key
+  }
+</script>
 </html>
