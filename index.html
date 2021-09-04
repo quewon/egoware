@@ -5,9 +5,13 @@
   <title>egoware</title>
   <style type="text/css">
     body {
+      --color: #4e5152;
+      --dead: rgba(78, 81, 82, 0.2);
+      --bg: #d4d8d9;
+
       font-family: monospace;
-      background: #d4d8d9;
-      color: #4e5152;
+      background: var(--bg);
+      color: var(--color);
       margin: 0;
 
       -webkit-touch-callout: none; /* iOS Safari */
@@ -25,14 +29,14 @@
     }
 
     .inverted {
-      background: #4e5152;
-      color: #d4d8d9;
+      background: var(--color);
+      color: var(--bg);
       height: fit-content;
       width: fit-content;
     }
 
     hr {
-      border-color: #d4d8d9;
+      border-color: var(--bg);
     }
 
     span {
@@ -54,8 +58,8 @@
       margin: 0;
     }
     button:hover {
-      background: #4e5152;
-      color: #d4d8d9;
+      background: var(--color);
+      color: var(--bg);
       cursor: pointer;
     }
     button.inverted {
@@ -67,7 +71,7 @@
       width: 7em;
       background: transparent;
       border: none;
-      border-bottom: 1px solid #4e5152;
+      border-bottom: 1px solid var(--color);
       font-family: inherit;
       font-size: inherit;
       color: inherit;
@@ -89,7 +93,7 @@
       width: 100vw;
       height: 100vh;
     }
-    .list {
+    #screen {
       white-space: pre;
       width: calc(65% - 3em);
       overflow: scroll;
@@ -97,10 +101,9 @@
       right: 0;
       height: 100%;
     }
-    #list {
+    #screen div {
       position: absolute;
       top: 10vh;
-      overflow: hidden;
       padding-bottom: 10vh;
     }
 
@@ -108,26 +111,19 @@
       text-align: left;
       white-space: pre;
       padding: 1em;
-      border: 1px solid #4e5152;
+      border: 1px solid var(--color);
+      border-top: none;
     }
     #profile .inverted {
       width: 100%;
     }
 
-    .dead {
-      color: rgba(78, 81, 82, 0.2);
-      width: fit-content;
-      height: fit-content;
-      background: transparent;
-    }
-    .dead:hover {
-      cursor: default;
-      background: transparent;
-      color: rgba(78, 81, 82, 0.2);
-    }
-
     #feed {
-      cursor: pointer
+      cursor: pointer;
+      white-space: normal;
+    }
+    #feed div span {
+      display: inline
     }
     #feed .hide {
       animation: hide 1s;
@@ -140,6 +136,110 @@
         opacity: 0;
       }
     }
+
+    /* toggle switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 2.5em;
+      height: 1em;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      -webkit-transition: 300ms;
+      transition: 300ms;
+      border-radius: 1em;
+      width: 100%;
+      height: 1em;
+      border: 1px solid var(--color);
+    }
+    .slider:before {
+      position: absolute;
+      left: 0;
+      content: "";
+      height: 1em;
+      width: 1em;
+      background-color: var(--color);
+      -webkit-transition: 300ms;
+      transition: 300ms;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--color);
+    }
+
+    input:checked + .slider:before {
+      -webkit-transform: translateX(1.5em);
+      -ms-transform: translateX(1.5em);
+      transform: translateX(1.5em);
+      background-color: var(--bg);
+    }
+
+    #work {
+      width: calc(75vh - 3em);
+    }
+    #work span {
+      width: 100%;
+      text-align: left;
+    }
+
+    /* progress bar */
+    .progress {
+      position: relative;
+      width: 10em !important;
+      border: 1px solid var(--color);
+      height: 1em;
+      float: right;
+    }
+    .progress .bar {
+      position: relative;
+      width: 100%;
+      height: 1em;
+      background-color: var(--color);
+    }
+    .dead .progress {
+      border-color: var(--dead);
+    }
+    .dead .progress .bar {
+      background-color: var(--dead);
+    }
+    .progress::after {
+      position: absolute;
+      top: 0;
+      right: -3em;
+      margin-left: 1em;
+      content: attr(data-p);
+    }
+
+    .dead {
+      color: var(--dead);
+      width: fit-content;
+      height: fit-content;
+      background: transparent;
+    }
+    .dead:hover {
+      cursor: default;
+      background: transparent;
+      color: var(--dead)
+    }
+    .dead button:hover {
+      cursor: default;
+      background: transparent;
+      color: var(--dead);
+    }
   </style>
 </head>
 
@@ -147,6 +247,8 @@
 
   <div id="intro" onkeypress="key(event)">
     your name is <input type="text"></input><br>and you have just created a cloning machine.
+    <!-- <br><br><br>
+    <i>there are no "are you sure?" popups in this game! assume buttons immediately keep their promise.</i> -->
   </div>
 
   <div class="none" id="container">
@@ -154,15 +256,64 @@
       <button id="name" onclick="profile(0)"></button>
       <hr>
       <div id="controls">
-        <button onclick="guys[0].clone()">clone</button> . <button onclick="guys[0].mutate()">mutate</button>
+         <button onclick="guys[0].clone()">clone</button> . <button onclick="guys[0].mutate()">mutate</button> . <button data-on="false" onclick="toggleScreen(this, 'work')" id="work_button">work</button><button data-on="false" onclick="toggleScreen(this, 'config')" id="config_button" class="none" style="float:right">config</button>
       </div>
-      <br><br>
-      <div id="profile" data-id=0></div>
-      <br><br>
-      <div id="feed"></div>
+      <div id="profile_container" class="none">
+        <br><br>
+        profile (does not update live)
+        <hr>
+        <div id="profile"></div>
+      </div>
+      <div id="feed_container" class="none">
+        <br><br>
+        feed
+        <hr>
+        <div id="feed"></div>
+      </div>
     </div>
-    <div class="list">
-      <div id="list"></div>
+    <div id="screen">
+      <div class="none" id="list"></div>
+      <div class="none" id="config" style="white-space:normal;">
+        system configurations
+        <br><br><br>
+        feed
+        <hr>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;announce work:
+        <label class="switch">
+          <input type="checkbox" checked onchange="configure(this, 'announceWork')">
+          <span class="slider"></span>
+        </label><br>
+        &nbsp;&nbsp;&nbsp;announce clones:
+        <label class="switch">
+          <input type="checkbox" checked onchange="configure(this, 'announceClone')">
+          <span class="slider"></span>
+        </label><br>
+        announce mutations:
+        <label class="switch">
+          <input type="checkbox" checked onchange="configure(this, 'announceMutate')">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="none" id="work" style="white-space:normal;">
+        to do
+        <br><br>
+        <span class="dead">shallow space exploration
+        <span class="progress" data-p="100%">
+          <span class="bar"></span>
+        </span></span>
+        <br>
+        <span class="dead">research weird rapid-duplicating alien goo&nbsp;
+        <span class="progress" data-p="100%">
+          <span class="bar"></span>
+        </span></span>
+        <br>
+        <span class="dead">human cloning
+        <span class="progress" data-p="100%">
+          <span class="bar"></span>
+        </span></span>
+        <br><br>
+        <button id="job_button" class="none" onclick="guys[0].work(jobselected)">work</button>
+      </div>
     </div>
   </div>
 
@@ -173,29 +324,232 @@
   var container = document.getElementById("container");
 
   var nametag = document.getElementById("name");
-  var list = document.getElementById("list");
   var feed = document.getElementById("feed");
+  var feed_container = document.getElementById("feed_container");
+  var _profile = document.getElementById("profile");
+  var _profile_container = document.getElementById("profile_container");
+  var list = document.getElementById("list");
+  var _config = document.getElementById("config");
+  var _work = document.getElementById("work");
+  var config_button = document.getElementById("config_button");
+  var work_button = document.getElementById("work_button");
+
   var string = "abcdefghijklmnopqrstuvwxyz0123456789;',.";
-  var genelength = 16;
+  var maxclones = 200;
+  var guys = [];
+
+  var config = {
+    announceClone: true,
+    announceMutate: true,
+    announceWork: true,
+  };
+
+  var tutorial = {
+    firstCloneCreated: false,
+    firstGuyClicked: false, //profile appears
+    firstFeedMessage: false, //feed and config button appears
+  };
+
+  var jobs = [];
+  var job_button = document.getElementById("job_button");
+  var jobselected = null;
+
+  class job {
+    constructor(p) {
+      this.id = jobs.length;
+      this.cost = p.cost || 1;
+      this.realProgress = p.realProgress || 0;
+      this.name = p.name;
+      this.complete = false;
+      this.full = p.full || function(){ return null };
+
+      let el = document.createElement("span");
+      let button = document.createElement("button");
+      button.textContent = this.name;
+      button.dataset.on = "false";
+      button.dataset.id = this.id;
+      button.onclick = function() {
+        jobs[this.dataset.id].toggleSelect();
+      };
+      this.button = button;
+      el.appendChild(button);
+
+      let progel = document.createElement("span");
+      progel.className = "progress";
+      this.progel = progel;
+
+      this.bar = document.createElement("span");
+      this.bar.className = "bar";
+      progel.appendChild(this.bar);
+      el.appendChild(progel);
+      _work.insertBefore(el, _work.children[_work.children.length - 3]);
+
+      this.updateEl();
+      jobs.push(this);
+    }
+
+    deselect() {
+      if (jobselected == this.id) jobselected = null;
+      this.button.dataset.on = "false";
+      this.button.classList.remove("inverted");
+
+      if (!jobselected) job_button.classList.add("none");
+    }
+
+    select() {
+      for (let job of jobs) {
+        if (job.id != this.id)
+          job.deselect();
+      }
+
+      this.button.dataset.on = "true";
+      this.button.classList.add("inverted");
+
+      job_button.classList.remove("none");
+      jobselected = this.id;
+    }
+
+    toggleSelect() {
+      if (this.button.dataset.on == "true") {
+        this.deselect();
+      } else {
+        this.select();
+      }
+    }
+
+    updateEl() {
+      if (!this.complete) {
+        let s = this.progress()+"%";
+        this.progel.dataset.p = s;
+        this.bar.style.width = s;
+      }
+    }
+
+    progress() {
+      let num = Math.round(this.realProgress / this.cost);
+      if (num >= 100 && !this.complete) {
+        num = 100;
+        this.complete = true;
+        this.progel.parentNode.classList.add("dead");
+        this.deselect();
+        this.button.onclick = null;
+        this.updateEl();
+        this.feed("is complete.");
+        this.full();
+      }
+
+      return num
+    }
+
+    feed(message) {
+      if (feed.children.length > 4) {
+        let i=feed.children.length-1;
+        let elementNotHidden = feed.lastElementChild;
+        while (elementNotHidden.classList.contains("hide")) {
+          i--;
+          if (i >= 0) {
+            elementNotHidden = feed.children[i];
+          } else {
+            break;
+          }
+        }
+        if (elementNotHidden) {
+          elementNotHidden.classList.add("hide");
+          elementNotHidden.onanimationend = function() { this.remove() };
+        }
+      }
+
+      let el = document.createElement("div");
+      el.innerHTML = "<span class='inverted'>"+this.name+"</span> "+message;
+      el.onclick = function() { this.remove() };
+
+      if (feed.firstElementChild) {
+        feed.insertBefore(el, feed.firstElementChild);
+      } else {
+        feed.appendChild(el);
+      }
+    }
+  }
 
   window.onload = function() {
     intro.querySelector("input").focus();
   };
 
-  function key(e) {
-    if (e.key == "Enter") {
-      nametag.textContent = intro.querySelector("input").value;
-      new guy({
-        name: nametag.textContent
-      });
-      intro.classList.add("none");
-      container.classList.remove("none");
-      profile(0);
-      setInterval(tick, 100);
+  function init() {
+    intro.classList.add("none");
+    container.classList.remove("none");
+    new job({
+      name: "deep space exploration",
+      full: function() {
+        new job({
+          name: "the undead gene"
+        });
+        new job({
+          name: "crimefighting",
+          cost: 2
+        });
+        new job({
+          name: "biological warfare",
+          cost: 3
+        });
+        new job({
+          name: "world peace",
+          cost: 5
+        });
+      }
+    });
+    setInterval(tick, 100);
+  }
+
+  function configure(slider, name) {
+    if (slider.checked) {
+      config[name] = true;
+    } else {
+      config[name] = false;
     }
   }
 
-  var guys = [];
+  // horrendous i know but who cares
+  function toggleScreen(button, name) {
+    list.classList.add("none");
+    _config.classList.add("none");
+    _work.classList.add("none");
+    work_button.classList.remove("inverted");
+    config_button.classList.remove("inverted");
+
+    if (button) {
+      if (button.dataset.on == "false") {
+        window["_"+name].classList.remove("none");
+        button.classList.add("inverted");
+        config_button.dataset.on = "false";
+        work_button.dataset.on = "false";
+        button.dataset.on = "true";
+      } else {
+        if (tutorial.firstCloneCreated) {
+          list.classList.remove("none");
+        }
+        button.dataset.on = "false";
+      }
+    } else {
+      work_button.dataset.on = "false";
+      config_button.dataset.on = "false";
+      list.classList.remove("none");
+    }
+  }
+
+  function key(e) {
+    let value = intro.querySelector("input").value.trim();
+    if (e.key == "Enter" && value != "") {
+      nametag.textContent = value;
+      new guy({
+        name: nametag.textContent
+      });
+      init();
+    }
+  }
+
+  // player and clones
+
   class guy {
     constructor(og) {
       this.id = guys.length;
@@ -204,16 +558,18 @@
       this.children = [];
       this.parent = og.id || null;
       this.dead = false;
-      this.timer = og.timer || 1;
+      this.timer = og.timer || 0;
 
       if (og.actions) {
         this.actions = {
+          work: og.actions.work,
           clone: og.actions.clone,
           mutate: og.actions.mutate,
           kill: og.actions.kill,
         };
       } else {
         this.actions = {
+          work: 20,
           clone: 9,
           mutate: 10,
           kill: 0,
@@ -222,12 +578,14 @@
 
       if (og.stats) {
         this.stats = {
+          worked: og.stats.worked,
           cloned: og.stats.cloned,
           mutated: og.stats.mutated,
           killed: og.stats.killed
         }
       } else {
         this.stats = {
+          worked: 10,
           cloned: 0,
           mutated: 0,
           killed: 0,
@@ -265,6 +623,21 @@
       return s
     }
 
+    work(id) {
+      if (this.id != 0) {
+        id = id || Math.random() * jobs.length | 0;
+      }
+
+      if (jobs[id]) {
+        jobs[id].realProgress++;
+        jobs[id].updateEl();
+        this.actions.work++;
+        this.stats.worked++;
+
+        if (config.announceWork) this.feed("works on <span class='inverted'>"+jobs[id].name+"</span>.");
+      }
+    }
+
     clone() {
       if (this.dead) return;
 
@@ -272,12 +645,16 @@
       this.stats.cloned++;
       this.children.push(new guy(this));
 
-      this.feed("just became <span class='inverted'>two</span>.");
+      if (config.announceClone) this.feed("just became <span class='inverted'>two</span>.");
       update();
 
-      if (guys.length == 100) {
-        alert("warning: you've just reached 100 clones. you might wanna refresh your browser now, unless you want to give your computer a real hard time.")
+      if (guys.length == maxclones) {
+        alert("game over: you've just reached "+maxclones+" clones. you might wanna refresh your browser now, unless you want to give your computer a real hard time.")
       }
+
+      if (this.id == 0) toggleScreen();
+
+      if (!tutorial.firstCloneCreated) tutorial.firstCloneCreated = true;
     }
 
     mutate() {
@@ -293,7 +670,7 @@
       this.actions.mutate++;
       this.stats.mutated++;
 
-      this.feed("has mutated into <span class='inverted'>a new being</span>.");
+      if (config.announceMutate) this.feed("has mutated into <span class='inverted'>a new being</span>.");
       update();
     }
 
@@ -311,7 +688,13 @@
         if (killer.id == this.id) {
           this.feed("has gone.");
         } else {
-          this.feed("has been killed by <span class='inverted'>"+killer.name+"</span>.");
+          let msg = "has been killed by <span class='inverted'>"+killer.name+"</span>.";
+          if (killer.stats.killed <= 1) {
+            msg += " everybody is shocked."
+          } else {
+            msg += " people are wary."
+          }
+          this.feed(msg);
         }
       } else {
         this.feed("has passed away to <span class='inverted'>mysterious circumstances</span>.");
@@ -321,14 +704,28 @@
 
     closestLivingRelative() {
       // go through children, and my children's children
-
       // then my siblings, and my sibling's children
-
       // then my parent
-
       // then my parent's parent
 
-      return null
+      let guysalive = false;
+      for (let guy of guys) {
+        if (guy.id != this.id && !guy.dead) {
+          guys.alive = true;
+          break;
+        }
+      }
+
+      // this is just random
+
+      if (guysalive) {
+        let unlucky = Math.random() * guys.length | 0;
+        while (unlucky == this.id || guys[unlucky].dead) {
+          unlucky = Math.random() * guys.length | 0;
+        }
+
+        return unlucky
+      }
     }
 
     kill(id) {
@@ -336,8 +733,11 @@
         id = this.closestLivingRelative();
 
       if (!isNaN(id)) {
-        for (let guy of guys) {
-          guy.actions.kill++;
+        if (id != this.id) {
+          for (let guy of guys) {
+            if (!guy.dead)
+              guy.actions.kill++;
+          }
         }
         this.stats.killed++;
         guys[id].die(this);
@@ -348,13 +748,13 @@
     tick() {
       if (this.dead) return;
 
+      this.timer++;
+
       const random = Math.random()*500 | 0;
       if (this.timer % random == 0) {
         const choice = weightedRandom(this.actions);
         this[choice]();
       }
-
-      this.timer++;
     }
 
     print(indent, last) {
@@ -373,7 +773,7 @@
 
       let selected = _profile.dataset.id == this.id ? " inverted" : "";
 
-      s += this.dead ? "<span class='dead"+selected+"'>"+this.name+"</span><br>" : `<button class="`+selected+`" onclick="profile('`+this.id+`')">`+this.name+"</button><br>";
+      s += this.dead ? "<span class='dead"+selected+"'>"+this.name+"</span><br>" : `<button class="`+selected+`" onclick="profile('`+this.id+`');update()">`+this.name+"</button><br>";
 
       for (let i=0; i<this.children.length; i++) {
         s += this.children[i].print(indent, i == this.children.length - 1);
@@ -409,6 +809,12 @@
       } else {
         feed.appendChild(el);
       }
+
+      if (!tutorial.firstFeedMessage) {
+        tutorial.firstFeedMessage = true;
+        feed_container.classList.remove("none");
+        config_button.classList.remove("none");
+      }
     }
   }
 
@@ -427,16 +833,18 @@
     nametag.innerHTML = guys[0].name;
 
     list.innerHTML = guys[0].print("", true);
+    if (_profile.dataset.id) profile(_profile.dataset.id);
   }
 
-  var _profile = document.getElementById("profile");
   function profile(id) {
     let guy = guys[id];
     let s = "";
 
     s += "<span class='inverted'>"+guy.name+"</span><br><br>";
+    s += "     id: "+guy.id+"<br>";
     s += "    age: "+guy.timer+"<br>";
     s += "   gene: "+guy.gene+"<br>";
+    s += " worked: "+guy.stats.worked+"<br>";
     s += " cloned: "+guy.stats.cloned+"<br>";
     s += "mutated: "+guy.stats.mutated+"<br>";
     s += " killed: "+guy.stats.killed+"<br>";
@@ -447,7 +855,10 @@
     _profile.dataset.id = id;
     _profile.innerHTML = s;
 
-    update();
+    if (!tutorial.firstGuyClicked) {
+      tutorial.firstGuyClicked = true;
+      _profile_container.classList.remove("none");
+    }
   }
 
   function weightedRandom(P) {
@@ -458,7 +869,7 @@
       max += P[k];
     }
 
-    let random = Math.round(Math.random() * max);
+    let random = Math.random() * max;
 
     let i = 0;
     for (let k in P) {

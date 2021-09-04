@@ -1,0 +1,38 @@
+a progress bar
+you can choose what you want to develop
+
+- shallow space exploration - 100%
+- research weird rapid-duplicating alien goo - 100%
+- human cloning - 100%
+
+- deep space exploration (set clones free)
+- necromancy (revive dead clones)
+- crimefighting (make clones famous and heroic)
+- biological warfare (kill clones efficiently)
+- world domination (make clones selfish and pragmatic)
+
+
+make an announcement:
+  "stop cloning"
+  "don't stop cloning"
+
+
+rogues
+chance to go rogue will increase with every
+
+
+possible endings:
+
+setting every clone free
+  getting everyone citizenships
+  sending them to space
+killing every clone
+  nukes
+  crime
+  risky exploration
+killing everyone else
+
+
+clones joining forces to kill the clone that kills the most
+clones that are no longer a part of the circle
+  unaffected by deaths (doesn't raise their chances of killing)
