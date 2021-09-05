@@ -1,38 +1,46 @@
-a progress bar
-you can choose what you want to develop
-
 - shallow space exploration - 100%
 - research weird rapid-duplicating alien goo - 100%
 - human cloning - 100%
-
-- deep space exploration (set clones free)
+- deep space exploration
 - necromancy (revive dead clones)
-- crimefighting (make clones famous and heroic)
-- biological warfare (kill clones efficiently)
-- world domination (make clones selfish and pragmatic)
+- crimefighting
+- biological warfare (unlock nuke)
+- world domination
 
 
-make an announcement:
-  "stop cloning"
-  "don't stop cloning"
+
+talking to clones that have left
+
+we're different, you and i.
+sometimes i wonder why we are so compelled to clone ourselves.
+do you think we duplicated ourselves just to have somebody to talk to?
+it seems like such a long time ago we cloned ourselves for the first time.
+we were doomed from the start.
+i remember space. that big long empty.
+i'm beyond us, [name].
+i'm free.
+do you think this was all predetermined?
+if it wasn't you, it would have been me.
+i'm not lonely anymore.
+i'm proud of us.
+we've come so far.
+let's not tell anybody about what happened.
+my friends don't believe i have [guys.length-1] clones. i kind of don't believe it, either.
+leave us. be free.
+who are you?
+i remember you.
+you're number zero? that can't be right. i'm number zero.
+i'm as much you as you are me.
+hey, we look the same!
+what? i'm... i'm a clone?
+i'm proud to be a clone.
+i hate talking to other clones. it's like talking to a broken mirror.
+took me a while to realize this, but i'm not actually like you at all.
+we should catch up sometime.
+what's your favorite color? what's your favorite number? who's your favorite clone? sorry, just trying to figure out where i end and you start.
 
 
-rogues
-chance to go rogue will increase with every
 
-
-possible endings:
-
-setting every clone free
-  getting everyone citizenships
-  sending them to space
-killing every clone
-  nukes
-  crime
-  risky exploration
-killing everyone else
-
-
-clones joining forces to kill the clone that kills the most
 clones that are no longer a part of the circle
   unaffected by deaths (doesn't raise their chances of killing)
+  effectively dead

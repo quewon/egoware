@@ -348,11 +348,53 @@
     firstCloneCreated: false,
     firstGuyClicked: false, //profile appears
     firstFeedMessage: false, //feed and config button appears
+    dialogueUnlocked: false,
+    resurrectionUnlocked: false,
+    bionukeUnlocked: false,
   };
 
   var jobs = [];
   var job_button = document.getElementById("job_button");
   var jobselected = null;
+
+  var dialogue = [
+    "we're different, you and i.",
+    "sometimes i wonder why we are so compelled to clone ourselves.",
+    "do you think we duplicated ourselves just to have somebody to talk to?",
+    "it seems like such a long time ago we first cloned ourselves.",
+    "we were doomed from the start.",
+    "i remember space. that big long empty.",
+    "i'm beyond us, [name].",
+    "i'm free.",
+    "do you think this was all predetermined?",
+    "if it wasn't you, it would have been me.",
+    "i'm not lonely anymore.",
+    "i'm proud of us.",
+    "we've come so far.",
+    "let's not tell anybody about what happened.",
+    "my friends don't believe i have [guys.length-1] clones. i kind of don't believe it, either.",
+    "leave us. be free.",
+    "who are you?",
+    "i remember you.",
+    "you're number zero? that can't be right. i'm number zero.",
+    "don't get it twisted. you're as much me as i am you.",
+    "hey, we look the same!",
+    "what? i'm... i'm a clone?",
+    "i'm proud to be a clone.",
+    "it's been so long since i've seen a clone.",
+    "i hate talking to other clones. it's like talking to a broken mirror.",
+    "took me a while to realize this, but i'm not actually like you at all.",
+    "we should catch up sometime.",
+    "i'm glad i'm not you.",
+    "we should catch up sometime.",
+    "what's your favorite color? what's your favorite number? who's your favorite clone? sorry, just trying to figure out where i end and you start.",
+    "i'm over all of this.",
+    "i'm gonna let this be enough for now.",
+    "sometimes i miss being around other clones.",
+    "please don't kill me.",
+    "who am i?",
+    "what do you want?",
+  ];
 
   class job {
     constructor(p) {
@@ -361,6 +403,7 @@
       this.realProgress = p.realProgress || 0;
       this.name = p.name;
       this.complete = false;
+      if (p.chance) this.chance = p.chance;
       this.full = p.full || function(){ return null };
 
       let el = document.createElement("span");
@@ -385,6 +428,11 @@
       _work.insertBefore(el, _work.children[_work.children.length - 3]);
 
       this.updateEl();
+
+      for (let guy of guys) {
+        guy.jobs[this.id] = 1;
+      }
+
       jobs.push(this);
     }
 
@@ -482,20 +530,50 @@
       name: "deep space exploration",
       full: function() {
         new job({
-          name: "the undead gene"
+          name: "the undead gene",
+          chance: function(guy) {
+            guy.resurrect();
+          },
+          full: function() {
+            tutorial.resurrectionUnlocked = true;
+          }
         });
         new job({
           name: "crimefighting",
-          cost: 2
+          cost: 2,
+          chance: function(guy) {
+            guy.die("fighting crime");
+          }
         });
         new job({
           name: "biological warfare",
-          cost: 3
+          cost: 3,
+          chance: function(guy) {
+            guy.die("to a biohazard.");
+          },
+          full: function() {
+            tutorial.bionukeUnlocked = true;
+          }
         });
         new job({
           name: "world peace",
-          cost: 5
+          cost: 5,
+          chance: function(guy) {
+            if (guy.id == 0) return;
+
+            guy.free();
+            guy.feed("<span id='inverted'>rebels</span>.");
+          },
+          full: function() {
+            tutorial.dialogueUnlocked = true;
+          }
         });
+      },
+      chance: function(guy) {
+        if (guy.id == 0) return;
+
+        guy.free();
+        guy.feed("sets off to make a home in <span id='inverted'>deep space</span>.");
       }
     });
     setInterval(tick, 100);
@@ -558,7 +636,9 @@
       this.children = [];
       this.parent = og.id || null;
       this.dead = false;
+      this.freed = false;
       this.timer = og.timer || 0;
+      this.dialogue = dialogue[Math.random() * dialogue.length | 0];
 
       if (og.actions) {
         this.actions = {
@@ -589,6 +669,13 @@
           cloned: 0,
           mutated: 0,
           killed: 0,
+        }
+      };
+
+      this.jobs = {};
+      if (og.jobs) {
+        for (let job in og.jobs) {
+          this.jobs[job] = og.jobs[job];
         }
       }
 
@@ -625,7 +712,20 @@
 
     work(id) {
       if (this.id != 0) {
-        id = id || Math.random() * jobs.length | 0;
+        let unfinishedjobs = false;
+        for (let job in this.jobs) {
+          if (!jobs[job].complete) {
+            unfinishedjobs = true;
+            break;
+          }
+        }
+
+        if (unfinishedjobs) {
+          id = id || weightedRandom(this.jobs);
+          while (jobs[id].complete) {
+            id = weightedRandom(this.jobs);
+          }
+        }
       }
 
       if (jobs[id]) {
@@ -634,8 +734,46 @@
         this.actions.work++;
         this.stats.worked++;
 
+        this.jobs[id]++;
+
         if (config.announceWork) this.feed("works on <span class='inverted'>"+jobs[id].name+"</span>.");
+
+        if ('chance' in jobs[id] && Math.round(Math.random() * (49+this.jobs[id])) == 0) {
+          jobs[id].chance(this);
+        }
       }
+
+      if (this.id == _profile.dataset.id) {
+        profile(_profile.dataset.id);
+      }
+    }
+
+    specialty() {
+      let s = [];
+      let min = 2;
+      for (let id in this.jobs) {
+        if (jobs[id].complete) continue;
+
+        if (this.jobs[id] > min) {
+          s = [jobs[id].name];
+          min = this.jobs[id];
+        } else if (this.jobs[id] == min) {
+          s.push(jobs[id].name);
+        }
+      }
+
+      if (s.length > 0) {
+        let str = "";
+
+        for (let job of s) {
+          str += job+", ";
+        }
+        str = str.slice(0, -2);
+
+        return str
+      }
+
+      return "none"
     }
 
     clone() {
@@ -682,24 +820,71 @@
         for (let button of buttons) {
           button.classList.add("dead");
         }
+        config_button.classList.remove("dead");
+        work_button.classList.remove("dead");
+        _work.lastElementChild.classList.add("dead");
+        _work.lastElementChild.onclick = null;
       }
 
       if (killer) {
-        if (killer.id == this.id) {
-          this.feed("has gone.");
+        if (typeof killer === "string") {
+          this.feed(" "+killer);
         } else {
-          let msg = "has been killed by <span class='inverted'>"+killer.name+"</span>.";
-          if (killer.stats.killed <= 1) {
-            msg += " everybody is shocked."
+          if (killer.id == this.id) {
+            this.feed("has gone.");
           } else {
-            msg += " people are wary."
+            let msg = "has been killed by <span class='inverted'>"+killer.name+"</span>.";
+            if (killer.stats.killed <= 1) {
+              msg += " everybody is shocked."
+            } else {
+              msg += " people are wary."
+            }
+            this.feed(msg);
           }
-          this.feed(msg);
         }
       } else {
         this.feed("has passed away to <span class='inverted'>mysterious circumstances</span>.");
       }
       update();
+    }
+
+    free() {
+      this.freed = true;
+      update();
+    }
+
+    undie(reviver) {
+      this.dead = false;
+      this.feed("was revived by <span class='inverted'>"+reviver.name+"</span>.");
+    }
+
+    resurrect(id) {
+      if (isNaN(id))
+        id = this.closestDeadRelative();
+
+      if (!isNaN(id)) {
+        guys[id].undie(this);
+        profile(_profile.dataset.id);
+      }
+    }
+
+    closestDeadRelative() {
+      let guysdead = false;
+      for (let guy of guys) {
+        if (guy.id != this.id && guy.dead && !guy.freed) {
+          guysdead = true;
+          break;
+        }
+      }
+
+      if (guysdead) {
+        let lucky = Math.random() * guys.length | 0;
+        while (lucky == this.id || !guys[lucky].dead || guys[lucky].freed) {
+          lucky = Math.random() * guys.length | 0;
+        }
+
+        return lucky
+      }
     }
 
     closestLivingRelative() {
@@ -710,8 +895,8 @@
 
       let guysalive = false;
       for (let guy of guys) {
-        if (guy.id != this.id && !guy.dead) {
-          guys.alive = true;
+        if (guy.id != this.id && !guy.dead && !guy.freed) {
+          guysalive = true;
           break;
         }
       }
@@ -720,7 +905,7 @@
 
       if (guysalive) {
         let unlucky = Math.random() * guys.length | 0;
-        while (unlucky == this.id || guys[unlucky].dead) {
+        while (unlucky == this.id || guys[unlucky].dead || guys[unlucky].freed) {
           unlucky = Math.random() * guys.length | 0;
         }
 
@@ -735,7 +920,7 @@
       if (!isNaN(id)) {
         if (id != this.id) {
           for (let guy of guys) {
-            if (!guy.dead)
+            if (!guy.dead && !guy.freed)
               guy.actions.kill++;
           }
         }
@@ -745,8 +930,22 @@
       }
     }
 
+    nuke(id) {
+      if (!isNaN(id)) {
+        guys[id].die("in the blast.");
+        for (let i of guys[id].children) {
+          guys[i].die("in the blast.");
+        }
+        this.feed(" unleashed a <span class='inverted'>bio nuke</span>. this does not go unnoticed.");
+        for (let guy of guys) {
+          if (!guy.dead && !guy.freed)
+            guy.actions.kill++;
+        }
+      }
+    }
+
     tick() {
-      if (this.dead) return;
+      if (this.dead || this.freed) return;
 
       this.timer++;
 
@@ -773,13 +972,17 @@
 
       let selected = _profile.dataset.id == this.id ? " inverted" : "";
 
-      s += this.dead ? "<span class='dead"+selected+"'>"+this.name+"</span><br>" : `<button class="`+selected+`" onclick="profile('`+this.id+`');update()">`+this.name+"</button><br>";
+      s += this.dead || this.freed ? "<span class='dead"+selected+"'>"+this.name+"</span><br>" : `<button class="`+selected+`" onclick="profile('`+this.id+`');update()">`+this.name+"</button><br>";
 
       for (let i=0; i<this.children.length; i++) {
         s += this.children[i].print(indent, i == this.children.length - 1);
       }
 
       return s
+    }
+
+    speak() {
+      this.feed("says, <i>"+this.dialogue+"</i>");
     }
 
     feed(message) {
@@ -826,7 +1029,7 @@
   }
 
   function update() {
-    if (guys[0].dead) {
+    if (guys[0].dead || guys[0].freed) {
       nametag.onclick = null;
       nametag.classList.add("dead");
     }
@@ -840,17 +1043,33 @@
     let guy = guys[id];
     let s = "";
 
+    let status = guy.dead ? "dead" : "alive";
+    if (guy.freed) status = "unknown";
+
     s += "<span class='inverted'>"+guy.name+"</span><br><br>";
-    s += "     id: "+guy.id+"<br>";
-    s += "    age: "+guy.timer+"<br>";
-    s += "   gene: "+guy.gene+"<br>";
-    s += " worked: "+guy.stats.worked+"<br>";
-    s += " cloned: "+guy.stats.cloned+"<br>";
-    s += "mutated: "+guy.stats.mutated+"<br>";
-    s += " killed: "+guy.stats.killed+"<br>";
+    s += "       id: "+guy.id+"<br>";
+    s += "      age: "+guy.timer+"<br>";
+    s += "   status: "+status+"<br>";
+    s += "     gene: "+guy.gene+"<br><br>";
+
+    s += "specialty: "+guy.specialty()+"<br>";
+    s += "   worked: "+guy.stats.worked+"<br>";
+    s += "   cloned: "+guy.stats.cloned+"<br>";
+    s += "  mutated: "+guy.stats.mutated+"<br>";
+    s += "   killed: "+guy.stats.killed+"<br>";
     s += "<br>";
 
-    s += guys[0].dead || guy.dead ? `<span class="dead">kill</span>` : `<button onclick="guys[0].kill(`+guy.id+`)">kill</button>`;
+    s += guys[0].dead || guy.dead || guy.freed ? `<span class="dead">kill</span>` : `<button onclick="guys[0].kill(`+guy.id+`)">kill</button>`;
+
+    if (tutorial.resurrectionUnlocked) {
+      s += guys[0].dead || !guy.dead || guy.freed ? `<span class="dead">resurrect</span>` : ` . <button onclick="guys[0].resurrect(`+guy.id+`)">resurrect</button>`;
+    }
+    if (tutorial.bionukeUnlocked) {
+      s += guys[0].dead || guy.dead || guy.freed ? `<span class="dead">nuke</span>` : `<button onclick="guys[0].nuke(`+guy.id+`)">nuke</button>`
+    }
+    if (tutorial.dialogueUnlocked) {
+      s += guys[0].dead && guy.dead ? `<span class="dead">contact</span>` : `<button onclick="guys[`+guy.id+`].speak()">contact</button>`
+    }
 
     _profile.dataset.id = id;
     _profile.innerHTML = s;
