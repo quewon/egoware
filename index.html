@@ -347,7 +347,7 @@
   var work_button = document.getElementById("work_button");
 
   var string = "abcdefghijklmnopqrstuvwxyz0123456789;',.";
-  var maxclones = 200;
+  var maxclones = 1000;
   var guys = [];
 
   var config = {
@@ -572,13 +572,13 @@
           }
         });
         new job({
-          name: "world peace",
+          name: "world domination",
           cost: 5,
           chance: function(guy) {
             if (guy.id == 0) return;
 
             guy.free();
-            guy.feed("<span class='inverted'>rebels</span>.");
+            guy.feed(" <span class='inverted'>rebels</span>.");
           },
           full: function() {
             tutorial.dialogueUnlocked = true;
@@ -590,7 +590,7 @@
         if (guy.id == 0) return;
 
         guy.free();
-        guy.feed("sets off to make a home in <span class='inverted'>deep space</span>.");
+        guy.feed(" sets off to make a home in <span class='inverted'>deep space</span>.");
       }
     });
     setInterval(tick, 100);
@@ -757,7 +757,7 @@
 
         this.jobs[id]++;
 
-        if (config.announceWork) this.feed("works on <span class='inverted'>"+jobs[id].name+"</span>.");
+        if (config.announceWork) this.feed(" works on <span class='inverted'>"+jobs[id].name+"</span>.");
 
         if ('chance' in jobs[id] && Math.round(Math.random() * (19+this.jobs[id])) == 0) {
           jobs[id].chance(this);
@@ -804,7 +804,7 @@
       this.stats.cloned++;
       this.children.push(new guy(this));
 
-      if (config.announceClone) this.feed("just became <span class='inverted'>two</span>.");
+      if (config.announceClone) this.feed(" just became <span class='inverted'>two</span>.");
       update();
 
       if (guys.length == maxclones) {
@@ -829,7 +829,7 @@
       this.actions.mutate++;
       this.stats.mutated++;
 
-      if (config.announceMutate) this.feed("has mutated into <span class='inverted'>a new being</span>.");
+      if (config.announceMutate) this.feed(" has mutated into <span class='inverted'>a new being</span>.");
       update();
     }
 
@@ -854,9 +854,10 @@
           this.feed(" "+killer);
         } else {
           if (killer.id == this.id) {
-            this.feed("has gone.");
+            this.feed(" has gone.");
           } else if (config.announceMurders) {
-            let msg = "has been killed by <span class='inverted'>"+killer.name+"</span>.";
+            let name = killer.id == 0 ? killer.name+" (you)" : killer.name;
+            let msg = " has been killed by <span class='inverted'>"+name+"</span>.";
             if (killer.stats.killed <= 1) {
               msg += " everybody is shocked."
             } else {
@@ -866,8 +867,20 @@
           }
         }
       } else {
-        this.feed("has passed away to <span class='inverted'>mysterious circumstances</span>.");
+        this.feed(" has passed away to <span class='inverted'>mysterious circumstances</span>.");
       }
+
+      let alldead = true;
+      for (let guy of guys) {
+        if (!guy.dead) {
+          alldead = false;
+          break;
+        }
+      }
+      if (alldead) {
+        this.feed("'s death marks the end.")
+      }
+
       update();
     }
 
@@ -898,7 +911,8 @@
 
       this.dead = false;
       update();
-      this.feed("was revived by <span class='inverted'>"+reviver.name+"</span>.");
+      let name = reviver.id == 0 ? reviver.name+" (you)" : reviver.name;
+      this.feed(" was revived by <span class='inverted'>"+name+"</span>.");
     }
 
     resurrect(id) {
@@ -907,10 +921,6 @@
 
       if (!isNaN(id)) {
         guys[id].undie(this);
-        for (let guy of guys) {
-          if (!guy.dead && !guy.freed && guy.actions.kill > 0.5)
-            guy.actions.kill -= 0.5;
-        }
         this.stats.resurrected++;
         this.actions.resurrect += 0.25;
         profile(_profile.dataset.id);
@@ -981,13 +991,19 @@
       }
     }
 
+    blastChildren() {
+      for (let guy of this.children) {
+        if (!guy.dead && !guy.freed) {
+          guy.die("gets caught in the blast.");
+          guy.blastChildren();
+        }
+      }
+    }
+
     nuke(id) {
       if (!isNaN(id)) {
         guys[id].die("gets caught in the blast.");
-        for (let guy of guys[id].children) {
-          if (!guy.dead && !guy.freed)
-            guy.die("gets caught in the blast.");
-        }
+        guys[id].blastChildren();
         this.feed(" unleashed a <span class='inverted'>bio nuke</span>. this does not go unnoticed.");
         for (let guy of guys) {
           if (!guy.dead && !guy.freed)
@@ -1035,7 +1051,8 @@
     }
 
     speak() {
-      this.feed("says, <i>"+this.dialogue+"</i>");
+      let d = this.dialogue.replace("[name]", guys[0].name).replace("[guys.length-1]", guys.length-1);
+      this.feed(" says, <i>"+d+"</i>");
     }
 
     feed(message) {
@@ -1058,7 +1075,7 @@
 
       let el = document.createElement("div");
       let name = this.id == 0 ? this.name+" (you)" : this.name;
-      el.innerHTML = name+" "+message;
+      el.innerHTML = name+message;
       el.onclick = function() { this.remove() };
 
       if (feed.firstElementChild) {
@@ -1096,7 +1113,9 @@
     let status = guy.dead ? "dead" : "alive";
     if (guy.freed) status = "unknown";
 
-    s += "<span class='inverted'>"+guy.name+"</span><br><br>";
+    let name = guy.id == 0 ? guy.name+" (you)" : guy.name;
+
+    s += "<span class='inverted'>"+name+"</span><br><br>";
     s += "       id: "+guy.id+"<br>";
     s += "      age: "+guy.timer+"<br>";
     s += "   status: "+status+"<br>";
