@@ -5,6 +5,14 @@
   <title>egoware</title>
   <style type="text/css">
     body {
+      --light-color: #4e5152;
+      --light-bg: #d4d8d9;
+      --light-dead: rgba(78, 81, 82, 0.2);
+
+      --dark-color: #d4d8d9;
+      --dark-bg: #4e5152;
+      --dark-dead: rgba(212, 216, 217, 0.2);
+
       --color: #4e5152;
       --dead: rgba(78, 81, 82, 0.2);
       --bg: #d4d8d9;
@@ -241,7 +249,7 @@
       color: var(--dead);
     }
 
-    #list .dead:hover, #list .dead.inverted {
+    #list .dead:hover, #list .dead.inverted, #name.dead:hover {
       cursor: pointer;
       background: var(--color);
       color: var(--bg);
@@ -252,7 +260,7 @@
 
 <body>
 
-  <div id="intro" onkeypress="key(event)">
+  <div id="intro" onkeydown="key(event)">
     your name is <input type="text"></input><br>and you have just created a cloning machine.
     <!-- <br><br><br>
     <i>there are no "are you sure?" popups in this game! assume buttons immediately keep their promise.</i> -->
@@ -260,10 +268,10 @@
 
   <div class="none" id="container">
     <div style="position:fixed;width:20vw;top:10vh;margin-left:15vw">
-      <button id="name" onclick="profile(0)"></button>
+      <button id="name" onclick="profile(0);play('type');"></button>
       <hr>
       <div id="controls">
-         <button onclick="guys[0].clone()">clone</button> . <button onclick="guys[0].mutate()">mutate</button> . <button data-on="false" onclick="toggleScreen(this, 'work')" id="work_button">work</button><button data-on="false" onclick="toggleScreen(this, 'config')" id="config_button" class="none" style="float:right">config</button>
+         <button onclick="guys[0].clone()">clone</button> . <button onclick="guys[0].mutate()">mutate</button> . <button data-on="false" onclick="toggleScreen(this, 'work')" id="work_button">work</button><button data-on="false" onclick="toggleScreen(this, 'config')" id="config_button" class="none" style="float:right">system</button>
       </div>
       <div id="profile_container" class="none">
         <br><br>
@@ -281,15 +289,16 @@
     <div id="screen">
       <div class="none" id="list"></div>
       <div class="none" id="config" style="white-space:normal;">
-        system configurations
-        <br><br><br>
-        feed
-        <hr>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;announce work:
+        system
+        <br><br>
+        dark mode:
         <label class="switch">
-          <input type="checkbox" checked onchange="configure(this, 'announceWork')">
+          <input type="checkbox" onchange="theme(this)">
           <span class="slider"></span>
-        </label><br>
+        </label>
+        <br><br><br>
+        feed configurations
+        <hr>
         &nbsp;&nbsp;&nbsp;announce clones:
         <label class="switch">
           <input type="checkbox" checked onchange="configure(this, 'announceClone')">
@@ -300,14 +309,43 @@
           <input type="checkbox" checked onchange="configure(this, 'announceMutate')">
           <span class="slider"></span>
         </label><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;announce work:
+        <label class="switch">
+          <input type="checkbox" checked onchange="configure(this, 'announceWork')">
+          <span class="slider"></span>
+        </label><br>
         &nbsp;&nbsp;announce murders:
         <label class="switch">
           <input type="checkbox" checked onchange="configure(this, 'announceMurders')">
           <span class="slider"></span>
         </label>
+        <br><br><br>
+        audio configurations
+        <hr>
+        &nbsp;&nbsp;clone alarm:
+        <label class="switch">
+          <input type="checkbox" checked onchange="configAudio(this, 'clone')">
+          <span class="slider"></span>
+        </label><br>
+        mutation bell:
+        <label class="switch">
+          <input type="checkbox" checked onchange="configAudio(this, 'mutate')">
+          <span class="slider"></span>
+        </label><br>
+        &nbsp;&nbsp;death beats:
+        <label class="switch">
+          <input type="checkbox" checked onchange="configAudio(this, 'death');configAudio(this, 'resurrect')">
+          <span class="slider"></span>
+        </label>
+        <br><br><br>
+        statistics (does not update live)
+        <hr>
+        <span id="stats" style="white-space:pre;width:fit-content;text-align:left;"></span>
+        <br><br><br>
+        <button onclick="location.reload()">rerun egoware</button>
       </div>
       <div class="none" id="work" style="white-space:normal;">
-        to do
+        work prospects
         <br><br>
         <span class="dead">shallow space exploration
         <span class="progress" data-p="100%">
@@ -331,6 +369,7 @@
 
 </body>
 
+<script type="text/javascript" src="howler.core.js"></script>
 <script type="text/javascript">
   var intro = document.getElementById("intro");
   var container = document.getElementById("container");
@@ -345,10 +384,19 @@
   var _work = document.getElementById("work");
   var config_button = document.getElementById("config_button");
   var work_button = document.getElementById("work_button");
+  var stats = document.getElementById("stats");
 
   var string = "abcdefghijklmnopqrstuvwxyz0123456789;',.";
   var maxclones = 1000;
   var guys = [];
+
+  var total = {
+    timer: 0,
+    work: 0,
+    kills: 0,
+    resurrections: 0,
+    nuked: 0,
+  };
 
   var config = {
     announceClone: true,
@@ -372,14 +420,13 @@
 
   var dialogue = [
     "we're different, you and i.",
-    "sometimes i wonder why we are so compelled to clone ourselves.",
-    "do you think we duplicated ourselves just to have somebody to talk to?",
+    "sometimes i wonder why we were so compelled to clone ourselves.",
+    "it got a lot less lonely when we duplicated ourselves.",
     "it seems like such a long time ago we first cloned ourselves.",
     "we were doomed from the start.",
     "i remember space. that big long empty.",
     "i'm beyond us, [name].",
     "i'm free.",
-    "do you think this was all predetermined?",
     "if it wasn't you, it would have been me.",
     "i'm not lonely anymore.",
     "i'm proud of us.",
@@ -393,10 +440,10 @@
     "don't get it twisted. you're as much me as i am you.",
     "hey, we look the same!",
     "what? i'm... i'm a clone?",
-    "i'm proud to be a clone.",
+    "i'm glad i'm a clone.",
     "it's been so long since i've seen a clone.",
     "i hate talking to other clones. it's like talking to a broken mirror.",
-    "took me a while to realize this, but i'm not actually like you at all.",
+    "you know, i'm not actually like you at all.",
     "we should catch up sometime.",
     "i'm glad i'm not you.",
     "we should catch up sometime.",
@@ -407,7 +454,58 @@
     "please don't kill me.",
     "who am i?",
     "what do you want?",
+    "is there anyone else left?",
+    "turns out, you're a clone too. didn't see that one coming, did you?",
+    "we should do this more often.",
+    "we should break that machine.",
+    "i hope i never see any of you again.",
+    "i'm going to miss everybody.",
+    "what's a clone?",
+    "hey, the machine still works. wanna make another one?",
+    "what should we do next?",
+    "i can't believe it.",
+    "i'm so tired.",
+    "i'm overworked.",
+    "we should've done something else.",
+    "we finally did it!",
   ];
+
+  function theme(button) {
+    let color, bg, dead;
+    const style = getComputedStyle(document.body);
+
+    if (!button.checked) {
+
+      // set theme to light
+      color = style.getPropertyValue('--light-color');
+      bg = style.getPropertyValue('--light-bg');
+      dead = style.getPropertyValue('--light-dead');
+
+    } else {
+
+      // set theme to dark
+      color = style.getPropertyValue('--dark-color');
+      bg = style.getPropertyValue('--dark-bg');
+      dead = style.getPropertyValue('--dark-dead');
+
+    }
+
+    document.body.style.setProperty('--color', color);
+    document.body.style.setProperty('--bg', bg);
+    document.body.style.setProperty('--dead', dead);
+
+    play('type');
+  }
+
+  var audio_configs = [];
+
+  function configAudio(button, name) {
+    audio_configs.splice(audio_configs.indexOf(name), 1);
+    if (!button.checked) {
+      audio_configs.push(name);
+    }
+    play('type');
+  }
 
   class job {
     constructor(p) {
@@ -426,6 +524,7 @@
       button.dataset.id = this.id;
       button.onclick = function() {
         jobs[this.dataset.id].toggleSelect();
+        play("type");
       };
       this.button = button;
       el.appendChild(button);
@@ -494,9 +593,12 @@
         this.progel.parentNode.classList.add("dead");
         this.deselect();
         this.button.onclick = null;
-        this.updateEl();
-        this.feed("is complete.");
+
+        let endmsg = this.name == "world domination" ? " it's time for everybody to retire." : "";
+        this.feed("is complete."+endmsg);
+        play('complete');
         this.full();
+        this.updateEl();
       }
 
       return num
@@ -522,7 +624,7 @@
 
       let el = document.createElement("div");
       el.innerHTML = "<span class='inverted'>"+this.name+"</span> "+message;
-      el.onclick = function() { this.remove() };
+      el.onclick = function() { this.remove();play("type"); };
 
       if (feed.firstElementChild) {
         feed.insertBefore(el, feed.firstElementChild);
@@ -532,9 +634,89 @@
     }
   }
 
-  window.onload = function() {
-    intro.querySelector("input").focus();
+  var sounds = {
+    clone: [
+      new Howl({ src: "sounds/clone/1.mp3" }),
+      new Howl({ src: "sounds/clone/2.mp3" }),
+      new Howl({ src: "sounds/clone/3.mp3" }),
+      new Howl({ src: "sounds/clone/4.mp3" }),
+    ],
+    work: [new Howl({ src: "sounds/work.mp3" })],
+    mutate: [
+      new Howl({ src: "sounds/mutate/1.mp3" }),
+      new Howl({ src: "sounds/mutate/2.mp3" }),
+      new Howl({ src: "sounds/mutate/3.mp3" }),
+      new Howl({ src: "sounds/mutate/4.mp3" }),
+      new Howl({ src: "sounds/mutate/5.mp3" }),
+      new Howl({ src: "sounds/mutate/6.mp3" }),
+      new Howl({ src: "sounds/mutate/7.mp3" }),
+    ],
+    die: [
+      new Howl({ src: "sounds/die/1.mp3" }),
+      new Howl({ src: "sounds/die/2.mp3" }),
+      new Howl({ src: "sounds/die/3.mp3" }),
+      new Howl({ src: "sounds/die/4.mp3" }),
+      new Howl({ src: "sounds/die/5.mp3" }),
+      new Howl({ src: "sounds/die/6.mp3" }),
+    ],
+    free: [
+      new Howl({ src: "sounds/free/1.mp3" }),
+      new Howl({ src: "sounds/free/2.mp3" }),
+      new Howl({ src: "sounds/free/3.mp3" }),
+      new Howl({ src: "sounds/free/4.mp3" })
+    ],
+    resurrect: [
+      new Howl({ src: "sounds/resurrect/1.mp3" }),
+      new Howl({ src: "sounds/resurrect/2.mp3" }),
+      new Howl({ src: "sounds/resurrect/3.mp3" }),
+      new Howl({ src: "sounds/resurrect/4.mp3" }),
+      new Howl({ src: "sounds/resurrect/5.mp3" }),
+      new Howl({ src: "sounds/resurrect/6.mp3" }),
+    ],
+    nuke: [new Howl({ src: "sounds/nuke.mp3" })],
+    speak: [
+      new Howl({ src: "sounds/speak/1.mp3" }),
+      new Howl({ src: "sounds/speak/2.mp3" }),
+      new Howl({ src: "sounds/speak/3.mp3" }),
+      new Howl({ src: "sounds/speak/4.mp3" }),
+    ],
+    type: [
+      new Howl({ src: "sounds/type/1.wav" }),
+      new Howl({ src: "sounds/type/2.wav" }),
+      new Howl({ src: "sounds/type/3.wav" }),
+    ],
+    complete: [new Howl({ src: "sounds/complete.mp3" })],
   };
+  window.onload = function() {
+    intro.classList.add("none");
+
+    let check = setInterval(function() {
+      var checklist = 0;
+      for (let i in sounds) {
+        for (let s in sounds[i]) {
+          checklist++;
+        }
+      }
+      for (let i in sounds) {
+        for (let s in sounds[i]) {
+          if (sounds[i][s].state() == "loaded") {
+            checklist--;
+          }
+        }
+      }
+      if (checklist <= 0) {
+        console.log("all assets loaded.");
+        intro.classList.remove("none");
+        intro.querySelector("input").focus();
+        clearInterval(check);
+      }
+    }, 100);
+  };
+
+  function play(name) {
+    if (audio_configs.indexOf(name) != -1) return;
+    sounds[name][Math.random() * sounds[name].length | 0].play()
+  }
 
   function init() {
     intro.classList.add("none");
@@ -602,6 +784,7 @@
     } else {
       config[name] = false;
     }
+    play('type');
   }
 
   // horrendous i know but who cares
@@ -613,6 +796,7 @@
     config_button.classList.remove("inverted");
 
     if (button) {
+      play('type');
       if (button.dataset.on == "false") {
         window["_"+name].classList.remove("none");
         button.classList.add("inverted");
@@ -641,6 +825,7 @@
       });
       init();
     }
+    play("type");
   }
 
   // player and clones
@@ -756,6 +941,8 @@
         this.stats.worked++;
 
         this.jobs[id]++;
+        total.work++;
+        play("work");
 
         if (config.announceWork) this.feed(" works on <span class='inverted'>"+jobs[id].name+"</span>.");
 
@@ -787,9 +974,9 @@
         let str = "";
 
         for (let job of s) {
-          str += job+", ";
+          str += job+"<br>           ";
         }
-        str = str.slice(0, -2);
+        str = str.slice(0, -15);
 
         return str
       }
@@ -802,6 +989,7 @@
 
       this.actions.clone++;
       this.stats.cloned++;
+      play("clone");
       this.children.push(new guy(this));
 
       if (config.announceClone) this.feed(" just became <span class='inverted'>two</span>.");
@@ -828,16 +1016,16 @@
 
       this.actions.mutate++;
       this.stats.mutated++;
+      play("mutate");
 
       if (config.announceMutate) this.feed(" has mutated into <span class='inverted'>a new being</span>.");
       update();
     }
 
-    die(killer) {
+    die(killer, muteSound) {
       this.dead = true;
 
       if (this.id == 0) {
-        nametag.onclick = null;
         nametag.classList.add("dead");
         let buttons = document.getElementById("controls").querySelectorAll("button");
         for (let button of buttons) {
@@ -866,9 +1054,10 @@
             this.feed(msg);
           }
         }
-      } else {
-        this.feed(" has passed away to <span class='inverted'>mysterious circumstances</span>.");
+        if (!muteSound) play("die");
       }
+
+      update();
 
       let alldead = true;
       for (let guy of guys) {
@@ -878,26 +1067,25 @@
         }
       }
       if (alldead) {
-        this.feed("'s death marks the end.")
+        if (guys.length == 1) {
+          alert("game over...");
+        } else {
+          alert("everybody's dead. game over?");
+        }
       }
-
-      update();
     }
 
     free() {
       if (this.id == 0) {
-        nametag.onclick = null;
         nametag.classList.add("dead");
       }
       this.freed = true;
+      play("free");
       update();
     }
 
     undie(reviver) {
       if (this.id == 0) {
-        nametag.onclick = function() {
-          profile(0)
-        };
         nametag.classList.remove("dead");
         let buttons = document.getElementById("controls").querySelectorAll("button");
         for (let button of buttons) {
@@ -905,11 +1093,12 @@
         }
         _work.lastElementChild.classList.remove("dead");
         _work.lastElementChild.onclick = function() {
-          guys[0].work(jobselected)
+          guys[0].work(jobselected);
         };
       }
 
       this.dead = false;
+      play("resurrect");
       update();
       let name = reviver.id == 0 ? reviver.name+" (you)" : reviver.name;
       this.feed(" was revived by <span class='inverted'>"+name+"</span>.");
@@ -923,6 +1112,7 @@
         guys[id].undie(this);
         this.stats.resurrected++;
         this.actions.resurrect += 0.25;
+        total.resurrections++;
         profile(_profile.dataset.id);
       }
     }
@@ -986,6 +1176,7 @@
           }
         }
         this.stats.killed++;
+        total.kills++;
         guys[id].die(this);
         profile(_profile.dataset.id);
       }
@@ -994,21 +1185,23 @@
     blastChildren() {
       for (let guy of this.children) {
         if (!guy.dead && !guy.freed) {
-          guy.die("gets caught in the blast.");
-          guy.blastChildren();
+          guy.die("gets caught in the blast.", true);
         }
+        guy.blastChildren();
       }
     }
 
     nuke(id) {
       if (!isNaN(id)) {
-        guys[id].die("gets caught in the blast.");
+        guys[id].die("gets caught in the blast.", true);
         guys[id].blastChildren();
         this.feed(" unleashed a <span class='inverted'>bio nuke</span>. this does not go unnoticed.");
         for (let guy of guys) {
           if (!guy.dead && !guy.freed)
             guy.actions.kill++;
         }
+        total.nuked++;
+        play("nuke");
         update();
       }
     }
@@ -1041,7 +1234,7 @@
 
       let selected = _profile.dataset.id == this.id ? " inverted" : "";
 
-      s += this.dead || this.freed ? "<span onclick='profile(`"+this.id+"`);update()' class='dead"+selected+"'>"+this.name+"</span><br>" : `<button class="`+selected+`" onclick="profile('`+this.id+`');update()">`+this.name+"</button><br>";
+      s += this.dead || this.freed ? "<span onclick='profile(`"+this.id+"`);update();play(`type`);' class='dead"+selected+"'>"+this.name+"</span><br>" : `<button class="`+selected+`" onclick="profile('`+this.id+`');update();play('type');">`+this.name+"</button><br>";
 
       for (let i=0; i<this.children.length; i++) {
         s += this.children[i].print(indent, i == this.children.length - 1);
@@ -1052,7 +1245,8 @@
 
     speak() {
       let d = this.dialogue.replace("[name]", guys[0].name).replace("[guys.length-1]", guys.length-1);
-      this.feed(" says, <i>"+d+"</i>");
+      this.feed(" says: <i>"+d+"</i>");
+      play("speak");
     }
 
     feed(message) {
@@ -1076,7 +1270,7 @@
       let el = document.createElement("div");
       let name = this.id == 0 ? this.name+" (you)" : this.name;
       el.innerHTML = name+message;
-      el.onclick = function() { this.remove() };
+      el.onclick = function() { this.remove();play("type"); };
 
       if (feed.firstElementChild) {
         feed.insertBefore(el, feed.firstElementChild);
@@ -1097,10 +1291,52 @@
       guys[i].tick();
     }
     guys[0].timer++;
+    total.timer++;
   }
 
   function update() {
     nametag.innerHTML = guys[0].name;
+
+    let s = "";
+    let clones = guys.length;
+    let alive = 0;
+    let dead = 0;
+    let unknown = 0;
+    for (let guy of guys) {
+      let status = guy.dead ? "dead" : "alive";
+      if (guy.freed) status = "unknown";
+
+      switch (status) {
+        case "dead":
+          dead++;
+          break;
+        case "alive":
+          alive++;
+          break;
+        case "unknown":
+          unknown++;
+          break;
+      }
+    }
+
+    let spacing = tutorial.resurrectionUnlocked || total.resurrections > 0 ? "      " : "";
+
+    s += spacing+"   time: "+total.timer+"<br><br>";
+
+    s += spacing+" clones: "+clones+"<br>";
+    s += spacing+"  alive: "+alive+"<br>";
+    s += spacing+"   dead: "+dead+"<br>";
+    s += spacing+"unknown: "+unknown+"<br><br>";
+
+    s += spacing+"   work: "+total.work+"<br>";
+    s += spacing+"murders: "+total.kills+"<br>";
+    if (tutorial.resurrectionUnlocked || total.resurrections > 0) {
+    s += "resurrections: "+total.resurrections+"<br>";
+    }
+    if (tutorial.bionukeUnlocked) {
+    s += "        nukes: "+total.nuked+"<br>";
+    }
+    stats.innerHTML = s;
 
     list.innerHTML = guys[0].print("", true);
     if (_profile.dataset.id) profile(_profile.dataset.id);
@@ -1137,7 +1373,7 @@
       s += guys[0].dead || guy.dead || guy.freed ? ` . <span class="dead">nuke</span>` : ` . <button onclick="guys[0].nuke(`+guy.id+`)">nuke</button>`
     }
     if (tutorial.dialogueUnlocked && guy.id != 0) {
-      s += guys[0].dead && guy.dead ? ` . <span class="dead">contact</span>` : ` . <button onclick="guys[`+guy.id+`].speak()">contact</button>`
+      s += guys[0].dead || guy.dead ? ` . <span class="dead">contact</span>` : ` . <button onclick="guys[`+guy.id+`].speak()">contact</button>`
     }
 
     _profile.dataset.id = id;
